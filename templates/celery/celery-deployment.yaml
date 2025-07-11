@@ -1,0 +1,136 @@
+{{- $geonodeBaseDir := printf "/usr/src/%s" .Values.configs.projectName -}}
+{{- $fullName := include "celery.fullname" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "celery.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "celery.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      {{- with .Values.services.celery.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        org.{{ .Chart.Name }}/network: {{ .Release.Name }}-{{ .Release.Namespace }}
+        {{- include "celery.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - args:
+            - celery-cmd
+          command:
+            - {{ printf "%s/entrypoint.sh" $geonodeBaseDir }}
+          env:
+            - name: IS_CELERY
+              value: "true"
+          # TODO: Create readiness and/or liveness probe
+          # Celery Error: No nodes replied within time constraint
+          envFrom:
+            - configMapRef:
+                name: {{ include "geonode.environment" . }}
+            - secretRef:
+                name: {{ include "geonode.main-secret" . }}
+            - secretRef:
+                name: {{ include "geonode.database-secret" . }}
+            {{- if .Values.configs.mail.enabled }}
+            - secretRef:
+                name: {{ include "geonode.mail-secret" . }}
+            {{- end }}
+            {{- if .Values.configs.recaptcha.enabled }}
+            - secretRef:
+                name: {{ include "geonode.recaptcha-secret" . }}
+            {{- end }}
+            {{- if .Values.configs.ldap.enabled }}
+            - secretRef:
+                name: {{ include "geonode.ldap-secret" . }}
+            {{- end }}
+            {{- if or .Values.memcached.enabled ( not (empty .Values.configs.memcached.location) ) }}
+            - secretRef:
+                name: {{ include "geonode.memcached-secret" . }}
+            {{- end }}
+          {{- with .Values.services.celery.image }}
+          image: {{ .repository }}:{{ .tag | default $.Chart.AppVersion }}
+          imagePullPolicy: {{ .pullPolicy }}
+          {{- end }}
+          name: {{ $fullName }}
+          securityContext:
+            {{- toYaml .Values.services.celery.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.services.celery.resources | nindent 12 }}
+          {{- with .Values.volumes }}
+          volumeMounts:
+            - mountPath: {{ .statics.mountPath }}
+              name: statics
+            - mountPath: {{ .geoserverData.mountPath }}
+              name: geoserver-data-dir
+            - mountPath: {{ .data.mountPath }}
+              name: data
+            - mountPath: {{ .tmp.mountPath }}
+              name: tmp
+            - mountPath: {{ .backupRestore.mountPath }}
+              name: backup-restore
+              readOnly: true
+            {{- end }}
+            {{- if .Values.configs.django.settings.override }}
+            - name: local-settings
+              mountPath: {{ printf "%s/geonode/local_settings.py" $geonodeBaseDir }}
+              subPath: local_settings.py
+              readOnly: true
+            {{- end }}
+      initContainers:
+        - name: wait-for-django
+          image: docker.io/library/busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: 
+            - 'sh'
+            - '-c' 
+            - >
+              until wget -T 5 --spider {{ include "django.internalPath" . }}
+                do echo waiting for django...; sleep 2; 
+              done
+      serviceAccountName: {{ include "geonode.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.celery.podSecurityContext | nindent 8 }}
+      restartPolicy: Always
+      {{- with .Values.services.celery.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.celery.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.celery.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: statics
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.statics-pvc" . }}
+        - name: geoserver-data-dir
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.geoserver-data-pvc" . }}
+        - name: backup-restore
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.backup-restore-pvc" . }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.data-pvc" . }}
+        - name: tmp
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.tmp-pvc" . }}
+        {{- if .Values.configs.django.settings.override }}
+        - name: local-settings
+          configMap:
+            name: {{ include "geonode.settings-local" . }}
+        {{- end }}
+status: {}

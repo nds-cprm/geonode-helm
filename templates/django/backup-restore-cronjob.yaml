@@ -1,0 +1,134 @@
+{{- $geonodeBaseDir := printf "/usr/src/%s" .Values.configs.projectName -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-backup
+  labels:
+    {{- include "django.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.configs.backupRestore }}
+  schedule: {{ .schedule | quote }}
+  suspend: {{ .suspend }}
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: {{ .historyLimit.success }}
+  failedJobsHistoryLimit: {{ .historyLimit.fail }}
+  {{- end }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          {{- with .Values.services.django.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          labels:
+            org.{{ .Chart.Name }}/network: {{ .Release.Name }}-{{ .Release.Namespace }}
+            {{- include "django.selectorLabels" . | nindent 12 }}
+        spec:
+          containers:
+            - name: backup-restore
+              {{- with .Values.services.django.image }}
+              image: {{ .repository }}:{{ .tag | default $.Chart.AppVersion }}
+              imagePullPolicy: {{ .pullPolicy }}
+              {{- end }}
+              command:
+                - sh
+                - '-c'
+              args:
+                - > 
+                  python manage.py backup --backup-dir={{ .Values.volumes.backupRestore.mountPath }} 
+                  --config=/var/run/geonode/backup-restore/settings.ini --force
+              env:
+                - name: IS_CELERY
+                  value: "false"
+              envFrom:
+                - configMapRef:
+                    name: {{ include "geonode.environment" . }}
+                - secretRef:
+                    name: {{ include "geonode.main-secret" . }}
+                - secretRef:
+                    name: {{ include "geonode.database-secret" . }}
+                {{- if .Values.configs.mail.enabled }}
+                - secretRef:
+                    name: {{ include "geonode.mail-secret" . }}
+                {{- end }}
+                {{- if .Values.configs.recaptcha.enabled }}
+                - secretRef:
+                    name: {{ include "geonode.recaptcha-secret" . }}
+                {{- end }}
+                {{- if .Values.configs.ldap.enabled }}
+                - secretRef:
+                    name: {{ include "geonode.ldap-secret" . }}
+                {{- end }}
+                {{- if or .Values.memcached.enabled ( not (empty .Values.configs.memcached.location) ) }}
+                - secretRef:
+                    name: {{ include "geonode.memcached-secret" . }}
+                {{- end }}
+              securityContext:
+                {{- toYaml .Values.services.django.securityContext | nindent 18 }}
+              volumeMounts:
+                {{- if .Values.configs.django.settings.override }}
+                - name: local-settings
+                  mountPath: {{ printf "%s/geonode/local_settings.py" $geonodeBaseDir }}
+                  subPath: local_settings.py
+                  readOnly: true
+                {{- end }}
+                {{- with .Values.volumes }}
+                - mountPath: {{ .statics.mountPath }}
+                  name: statics
+                  readOnly: true
+                - mountPath: {{ .geoserverData.mountPath }}
+                  name: geoserver-data-dir
+                - mountPath: {{ .backupRestore.mountPath }}
+                  name: backup-restore
+                - mountPath: {{ .data.mountPath }}
+                  name: data
+                  readOnly: true
+                - mountPath: {{ .tmp.mountPath }}
+                  name: tmp
+                {{- end }}
+                - name: backup-restore-settings
+                  mountPath: /var/run/geonode/backup-restore
+                  readOnly: true
+          serviceAccountName: {{ include "geonode.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.services.django.podSecurityContext | nindent 12 }}    
+          restartPolicy: OnFailure
+          {{- with .Values.services.django.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.services.django.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.services.django.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}      
+          volumes:
+            {{- if .Values.configs.django.settings.override }}
+            - name: local-settings
+              configMap:
+                name: {{ include "geonode.settings-local" . }}
+            {{- end }}
+            - name: statics
+              persistentVolumeClaim:
+                claimName: {{ include "geonode.statics-pvc" . }}
+            - name: geoserver-data-dir
+              persistentVolumeClaim:
+                claimName: {{ include "geonode.geoserver-data-pvc" . }}
+            - name: backup-restore
+              persistentVolumeClaim:
+                claimName: {{ include "geonode.backup-restore-pvc" . }}
+            - name: data
+              persistentVolumeClaim:
+                claimName: {{ include "geonode.data-pvc" . }}
+            - name: tmp
+              persistentVolumeClaim:
+                claimName: {{ include "geonode.tmp-pvc" . }}
+            - name: backup-restore-settings
+              configMap:
+                name: {{ include "geonode.backup-restore-settings" . }}
+
+

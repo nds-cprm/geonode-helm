@@ -1,0 +1,6 @@
+*.tgz
+Chart.lock
+values.*.yml
+values.*.yaml
+manifest.yml
+manifest.yaml

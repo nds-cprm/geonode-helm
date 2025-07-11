@@ -1,0 +1,101 @@
+{{- $fullName := include "nginx.fullname" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "nginx.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "nginx.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      {{- with .Values.services.nginx.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        org.{{ .Chart.Name }}/network: {{ .Release.Name }}-{{ .Release.Namespace }}
+        {{- include "nginx.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $fullName }}
+          {{- with .Values.services.nginx.image }}
+          image: {{ .repository }}:{{ .tag }}
+          imagePullPolicy: {{ .pullPolicy }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "geonode.environment" . }}
+          securityContext:
+            {{- toYaml .Values.services.nginx.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
+          # livenessProbe:
+          #   tcpSocket:
+          #     port: http
+          #   periodSeconds: 10
+          #   failureThreshold: 3
+          # readinessProbe:
+          #   exec:
+          #     command:
+          #       - sh
+          #       - '-c'
+          #       - wget --quiet --spider  http://127.0.0.1
+          #   initialDelaySeconds: 10
+          #   periodSeconds: 20
+          #   failureThreshold: 3
+          resources:
+            {{- toYaml .Values.services.nginx.resources | nindent 12 }}
+          {{- with .Values.volumes }}
+          volumeMounts:
+            - mountPath: {{ .statics.mountPath }}
+              name: statics
+              readOnly: true
+            # - mountPath: { .nginxConfd.mountPath }
+            #   name: nginx-confd
+            #   readOnly: true
+          {{- end }}
+      initContainers:
+        - name: wait-for-geoserevr
+          image: docker.io/library/busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: 
+            - 'sh'
+            - '-c'
+            - >
+              until wget -T 5 --spider {{ include "geoserver.internalPath" . }}
+                do echo waiting for geoserver...; sleep 2; 
+              done
+      serviceAccountName: {{ include "geonode.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.nginx.podSecurityContext | nindent 8 }}
+      restartPolicy: Always
+      {{- with .Values.services.nginx.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.nginx.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.nginx.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        # - name: nginx-confd
+        #   persistentVolumeClaim:
+        #     claimName: { .nginxConfd.name }
+        - name: statics
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.statics-pvc" . }}

@@ -1,0 +1,41 @@
+apiVersion: v2
+name: geonode
+version: 0.5.1
+description: >
+  GeoNode is a web-based application and platform for developing geospatial information 
+  systems (GIS) and for deploying spatial data infrastructures (SDI).
+type: application
+keywords:
+  - GIS
+  - FOSS4G
+  - webmap
+  - WMS
+  - WFS
+  - WCS
+  - SDI
+home: https://geonode.org/
+sources:
+  - https://github.com/GeoNode/geonode/
+  - https://github.com/GeoNode/geonode-docker
+  - https://github.com/GeoNode/geonode-mapstore-client
+  - https://github.com/GeoNode/geonode-importer
+  - https://github.com/GeoNode/geonode-project
+maintainers:
+  - name: Carlos Eduardo Mota
+    email: "carlos.mota@sgb.gov.br"
+    url: https://www.sgb.gov.br
+icon: https://avatars.githubusercontent.com/u/132843?s=200&v=4
+appVersion: "4.4.3"
+dependencies:
+  - name: rabbitmq
+    version: 15.3.2
+    repository: https://charts.bitnami.com/bitnami
+    condition: rabbitmq.enabled
+  - name: postgresql  
+    version: 16.4.14
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: memcached
+    version: 7.6.5
+    repository: https://charts.bitnami.com/bitnami
+    condition: memcached.enabled

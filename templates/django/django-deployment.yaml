@@ -1,0 +1,173 @@
+{{- $geonodeBaseDir := printf "/usr/src/%s" .Values.configs.projectName -}}
+{{- $fullName := include "django.fullname" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "django.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "django.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      {{- with .Values.services.django.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        org.{{ .Chart.Name }}/network: {{ .Release.Name }}-{{ .Release.Namespace }}
+        {{- include "django.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - command:
+            - {{ printf "%s/entrypoint.sh" $geonodeBaseDir }}         
+          args:
+            - uwsgi
+            - "--ini"
+            {{- if .Values.services.django.uwsgi.override }}
+            - /var/run/uwsgi/uwsgi.ini
+            {{- else }}
+            - {{ printf "%s/uwsgi.ini" $geonodeBaseDir }}
+            {{- end }}
+          env:
+            - name: IS_CELERY
+              value: "false"
+          envFrom:
+            - configMapRef:
+                name: {{ include "geonode.environment" . }}
+            - secretRef:
+                name: {{ include "geonode.main-secret" . }}
+            - secretRef:
+                name: {{ include "geonode.database-secret" . }}
+            {{- if .Values.configs.mail.enabled }}
+            - secretRef:
+                name: {{ include "geonode.mail-secret" . }}
+            {{- end }}
+            {{- if .Values.configs.recaptcha.enabled }}
+            - secretRef:
+                name: {{ include "geonode.recaptcha-secret" . }}
+            {{- end }}
+            {{- if .Values.configs.ldap.enabled }}
+            - secretRef:
+                name: {{ include "geonode.ldap-secret" . }}
+            {{- end }}
+            {{- if or .Values.memcached.enabled ( not (empty .Values.configs.memcached.location) ) }}
+            - secretRef:
+                name: {{ include "geonode.memcached-secret" . }}
+            {{- end }}
+          {{- with .Values.services.django.image }}
+          image: {{ .repository }}:{{ .tag | default $.Chart.AppVersion }}
+          imagePullPolicy: {{ .pullPolicy }}
+          {{- end }}
+          name: {{ $fullName }}
+          # livenessProbe:
+          #   tcpSocket:
+          #     port: wsgi
+          #   periodSeconds: 20
+          #   failureThreshold: 3
+          #   initialDelaySeconds: 120
+          # readinessProbe:
+          #   exec:s
+          #     command:
+          #       - sh
+          #       - '-c'
+          #       - wget --quiet --spider http://localhost:8000
+          #   initialDelaySeconds: 120
+          #   periodSeconds: 20
+          #   failureThreshold: 3
+          securityContext:
+            {{- toYaml .Values.services.django.securityContext | nindent 12 }}
+          ports:
+            - name: wsgi
+              containerPort: 8000
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.services.django.resources | nindent 12 }}          
+          volumeMounts:
+            {{- if .Values.services.django.uwsgi.override }}
+            - name: uwsgi
+              mountPath: /var/run/uwsgi
+              readOnly: true
+            {{- end }}
+            {{- if .Values.configs.django.settings.override }}
+            - name: local-settings
+              mountPath: {{ printf "%s/geonode/local_settings.py" $geonodeBaseDir }}
+              subPath: local_settings.py
+              readOnly: true
+            {{- end }}
+            {{- with .Values.volumes }}
+            - mountPath: {{ .statics.mountPath }}
+              name: statics
+            - mountPath: {{ .geoserverData.mountPath }}
+              name: geoserver-data-dir
+            - mountPath: {{ .data.mountPath }}
+              name: data
+            - mountPath: {{ .tmp.mountPath }}
+              name: tmp
+            - mountPath: {{ .backupRestore.mountPath }}
+              name: backup-restore
+              readOnly: true
+            {{- end }}
+      initContainers:
+        {{- $dbHost := (include "geonode.db.hostname" .) }}
+        {{- $dbPort := default "5432" .Values.configs.postgres.port }}
+        {{- with .Values.services.django.image }}
+        - name: wait-for-dbs          
+          image: {{ .repository }}:{{ .tag | default $.Chart.AppVersion }}
+          imagePullPolicy: {{ .pullPolicy }}
+          command:
+            - sh
+            - '-c'
+            - >
+              until pg_isready -h {{ $dbHost }} -p {{ $dbPort | toString }}
+                do echo waiting for database; sleep 2; 
+              done
+        {{- end }}
+      serviceAccountName: {{ include "geonode.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.django.podSecurityContext | nindent 8 }}
+      restartPolicy: Always
+      {{- with .Values.services.django.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.django.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.django.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}      
+      volumes:
+        {{- if .Values.services.django.uwsgi.override }}
+        - name: uwsgi
+          configMap:
+            name: {{ include "geonode.uwsgi-override" . }}
+        {{- end }}
+        {{- if .Values.configs.django.settings.override }}
+        - name: local-settings
+          configMap:
+            name: {{ include "geonode.settings-local" . }}
+        {{- end }}
+        - name: statics
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.statics-pvc" . }}
+        - name: geoserver-data-dir
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.geoserver-data-pvc" . }}
+        - name: backup-restore
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.backup-restore-pvc" . }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.data-pvc" . }}
+        - name: tmp
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.tmp-pvc" . }}
+status: {}

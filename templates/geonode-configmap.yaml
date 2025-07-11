@@ -1,0 +1,225 @@
+{{- $httpScheme := ternary "http" "https" (empty .Values.ingress.tlsSecretName) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "geonode.environment" . }}
+data:
+  COMPOSE_PROJECT_NAME: {{ .Values.configs.projectName }}   # Included in geoserver's entrypoint
+  # See https://github.com/containers/podman/iss TIMEENAues/13889
+  # DOCKER_BUILDKIT=0
+  # DOCKER_ENV: production
+  # See https://github.com/geosolutions-it/geonode-generic/issues/28
+  # to see why we force API version to 1.24
+  # DOCKER_API_VERSION: "1.24"
+  # BACKUPS_VOLUME_DRIVER: local
+
+  # Init
+  # C_FORCE_ROOT: "1"
+  FORCE_REINIT: {{ .Values.configs.forceReinit | toString | title | quote }}
+  INVOKE_LOG_STDOUT: {{ .Values.configs.invokeLogStdout | toString | title | quote }}
+
+  # Django
+  {{- if .Values.configs.languages }}
+  LANGUAGES: {{ range .Values.configs.languages -}}('{{ .code }}', '{{ .name }}'), {{ end }}
+  {{- end }}
+  LANGUAGE_CODE: {{ .Values.configs.languageCode }}  
+  
+  DJANGO_SETTINGS_MODULE: {{ printf "%s.%s" .Values.configs.projectName ( .Values.configs.django.settings.override | ternary "local_settings" "settings" ) }}
+  GEONODE_INSTANCE_NAME: geonode # serviço (docker, k8s) onde está o NGINX
+
+  # #################
+  # backend
+  # #################
+  # Postgres in geonode-postgres-secrets.yaml
+
+  {{- if .Values.rabbitmq.enabled }}
+  BROKER_URL: amqp://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:{{ default "5672" .Values.rabbitmq.service.ports.amqp }}
+  {{- else }}
+  BROKER_URL: {{ .Values.configs.celery.brokerURL }}
+  {{- end }}
+  CELERY_BEAT_SCHEDULER: celery.beat:PersistentScheduler
+  ASYNC_SIGNALS: "True"
+
+  SITEURL: {{ $httpScheme }}://{{ include "geonode.hostname" . }}/
+
+  ALLOWED_HOSTS: '[''{{ include "django.hostname" . }}'', ''{{ include "geonode.hostname" . }}'', ''127.0.0.1'', ''localhost'']'
+
+  # Data Uploader
+  DEFAULT_BACKEND_UPLOADER: geonode.importer
+  {{ with .Values.configs.uploader }}
+  TIME_ENABLED: {{ .timeEnabled | toString | title | quote }}
+  MOSAIC_ENABLED: {{ .mosaicEnabled | toString | title | quote }}
+  DEFAULT_MAX_UPLOAD_SIZE: {{ .maxUploadSize | int | quote }}
+  DEFAULT_MAX_PARALLEL_UPLOADS_PER_USER: {{ .maxParallelUploadsPerUser | quote }}
+  {{ end }}
+
+  # Django Haystack
+  # TODO: Ser if enabled
+  {{ with .Values.configs.haystack }}
+  HAYSTACK_SEARCH: {{ .enabled | toString | title | quote }}
+  HAYSTACK_ENGINE_URL: {{ .engine.url }}
+  HAYSTACK_ENGINE_INDEX_NAME: {{ .engine.indexName }} 
+  HAYSTACK_SEARCH_RESULTS_PER_PAGE: {{ .resultsPerPage | quote }} 
+  {{ end }}
+
+  # #################
+  # nginx
+  # HTTPD Server
+  # #################
+  GEONODE_LB_HOST_IP: {{ include "django.hostname" . }}
+  GEONODE_LB_PORT: {{ .Values.services.django.servicePort | toString | quote }}
+  NGINX_BASE_URL: {{ $httpScheme }}://{{ include "geonode.hostname" . }}
+
+  {{ if eq $httpScheme "https" }}
+  EXTERNAL_PROXY_SCHEME: {{ $httpScheme }}
+  {{ end }}
+
+  HTTP_HOST: {{ include "geonode.hostname" . }}
+  HTTPS_HOST: ""
+
+  HTTP_PORT: "80"
+  HTTPS_PORT: "443"
+
+  # Let's Encrypt certificates for https encryption. You must have a domain name as HTTPS_HOST (doesn't work
+  # with an ip) and it must be reachable from the outside. This can be one of the following :
+  # disabled : we do not get a certificate at all (a placeholder certificate will be used)
+  # staging : we get staging certificates (are invalid, but allow to test the process completely and have much higher limit rates)
+  # production : we get a normal certificate (default)
+  LETSENCRYPT_MODE: disabled
+
+  RESOLVER: {{ required "A valid resolver is required! See resolver list in README" .Values.services.nginx.config.resolver }}
+
+  # #################
+  # geoserver
+  # #################
+  GEOSERVER_LB_HOST_IP: {{ include "geoserver.hostname" . }}
+  GEOSERVER_LB_PORT: {{ .Values.services.geoserver.servicePort | toString | quote }}
+  GEOSERVER_WEB_UI_LOCATION: {{ $httpScheme }}://{{ include "geonode.hostname" . }}/geoserver/
+  GEOSERVER_PUBLIC_LOCATION: {{ $httpScheme }}://{{ include "geonode.hostname" . }}/geoserver/
+  GEOSERVER_LOCATION: {{ include "geoserver.internalPath" . }}
+
+  {{ with .Values.configs.geoserver }}
+  OGC_REQUEST_TIMEOUT: {{ .ogcRequest.timeout | quote }}
+  OGC_REQUEST_MAX_RETRIES: {{ .ogcRequest.maxRetries | quote }}
+  OGC_REQUEST_BACKOFF_FACTOR: {{ .ogcRequest.backoffFactor | quote }}
+  OGC_REQUEST_POOL_MAXSIZE: {{ .ogcRequest.poolMaxSize | quote }}
+  OGC_REQUEST_POOL_CONNECTIONS: {{ .ogcRequest.poolConnections | quote }}
+
+  # Java Options & Memory
+  ENABLE_JSONP: 'True'
+  outFormat: text/javascript
+  GEOSERVER_JAVA_OPTS: {{ .javaOpts | quote }}
+  {{ end }}
+
+  # #################
+  # Security
+  # #################
+
+  # EMAIL Notifications
+  {{ with .Values.configs.mail }}
+  EMAIL_ENABLE: {{ .enabled | toString | title | quote }}
+  {{- if .enabled }}
+  DEFAULT_FROM_EMAIL: {{ .defaultFrom }} 
+  DJANGO_EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+  {{- end }}
+  {{- end }}
+
+  # Session/Access Control
+  {{ with .Values.configs.accessControl }}
+  LOCKDOWN_GEONODE: {{ .lockdownGeoNode | toString | title | quote }}
+  X_FRAME_OPTIONS: {{ .xFrameOptions }}
+  SESSION_EXPIRED_CONTROL_ENABLED: {{ .sessionExpiredControlEnabled | toString | title | quote }}
+  DEFAULT_ANONYMOUS_VIEW_PERMISSION: {{ .defaultAnnonymousViewPermission | toString | title | quote }}
+  DEFAULT_ANONYMOUS_DOWNLOAD_PERMISSION: {{ .defaultAnnonymousDownloadPermission | toString | title | quote }}
+
+  CORS_ALLOW_ALL_ORIGINS: {{ .cors.allowAllOrigins | toString | title | quote }}
+  GEOSERVER_CORS_ENABLED: {{ .cors.geoserver.enabled | toString | title | quote }}
+  GEOSERVER_CORS_ALLOWED_ORIGINS: {{ .cors.geoserver.allowedOrigins | quote }}
+  GEOSERVER_CORS_ALLOWED_METHODS: {{ .cors.geoserver.allowedMethods }}
+  GEOSERVER_CORS_ALLOWED_HEADERS: {{ .cors.geoserver.allowedHeaders | quote }}
+  {{ end  }}
+
+  # Users Registration
+  {{ with .Values.configs.registration }}
+  ACCOUNT_OPEN_SIGNUP: {{ .account.openSignUp | toString | title | quote }}
+  ACCOUNT_EMAIL_REQUIRED: {{ .account.emailRequired | toString | title | quote }}
+  ACCOUNT_APPROVAL_REQUIRED: {{ .account.approvalRequired | toString | title | quote }}
+  ACCOUNT_CONFIRM_EMAIL_ON_GET: {{ .account.confirmEmailOnGet | toString | title | quote }}
+  ACCOUNT_EMAIL_VERIFICATION: {{ .account.email.verification }}
+  ACCOUNT_EMAIL_CONFIRMATION_EMAIL: {{ .account.email.confirmationEmail | toString | title | quote }}
+  ACCOUNT_EMAIL_CONFIRMATION_REQUIRED: {{ .account.email.confirmationRequired | toString | title | quote }}
+  ACCOUNT_AUTHENTICATION_METHOD: {{ .account.authenticationMethod }}
+  AUTO_ASSIGN_REGISTERED_MEMBERS_TO_REGISTERED_MEMBERS_GROUP_NAME: {{ .autoAssignRegisteredToMembersGroup | toString | title | quote }}
+  AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS: {{ .autoAssignRegisteredToContributorsGroup | toString | title | quote }}
+  {{ end }}
+
+  # #################
+  # Production and
+  # Monitoring
+  # #################
+  DEBUG: {{ .Values.configs.debug | toString | title | quote }}
+
+  STATIC_ROOT: /mnt/volumes/statics/static/
+  MEDIA_ROOT: /mnt/volumes/statics/uploaded/
+  GEOIP_PATH: /mnt/volumes/statics/geoip.db
+
+  CACHE_BUSTING_STATIC_ENABLED: {{ .Values.configs.cacheBustingStaticEnabled | toString | title | quote }}
+
+  # Memcached - moved to a secret
+  MEMCACHED_ENABLED: {{ or .Values.memcached.enabled ( not (empty .Values.configs.memcached.location) ) | toString | title | quote }}
+
+  MAX_DOCUMENT_SIZE: {{ .Values.configs.documents.maxSize | quote }}
+  CLIENT_RESULTS_LIMIT: {{ .Values.configs.pagination.clientResultsLimit | quote }}
+  API_LIMIT_PER_PAGE: {{ .Values.configs.pagination.apiLimitPerPage | quote }}
+
+  # GIS Client
+  GEONODE_CLIENT_LAYER_PREVIEW_LIBRARY: {{ .Values.configs.gisClient.layerPreviewLibrary | quote }}
+
+  # Monitoring
+  {{ with .Values.configs.monitoring }}
+  MONITORING_ENABLED: {{ .enabled | toString | title | quote }}
+  MONITORING_DATA_TTL: {{ .dataTTL | quote }}
+  USER_ANALYTICS_ENABLED: {{ .userAnalytics.enabled | toString | title | quote }}
+  USER_ANALYTICS_GZIP: {{ .userAnalytics.gzip | toString | title | quote }}
+  CENTRALIZED_DASHBOARD_ENABLED: {{ .centralizedDashboard | toString | title | quote }}
+  MONITORING_SERVICE_NAME: local-geonode
+  MONITORING_HOST_NAME: geonode
+  {{ end }}
+
+  # Other Options/Contribs
+  {{ with .Values.configs.misc }}
+  MODIFY_TOPICCATEGORY: {{ .modifyTopicCategory | toString | title | quote }}
+  AVATAR_GRAVATAR_SSL: {{ .avatarGravatarSSL | toString | title | quote }}
+  EXIF_ENABLED: {{ .exifEnabled | toString | title | quote }}
+  CREATE_LAYER: {{ .createLayer | toString | title | quote }}
+  FAVORITE_ENABLED: {{ .favoriteEnabled | toString | title | quote }}
+  {{ end }}
+
+  # Advanced Workflow
+  {{ with .Values.configs.publishWorkflow }}
+  RESOURCE_PUBLISHING: {{ .resourcePublishing | toString | title | quote }}
+  ADMIN_MODERATE_UPLOADS: {{ .adminModerateUploads | toString | title | quote }}
+  {{ end }}
+
+  # LDAP - moved to secrets
+  LDAP_ENABLED: {{ .Values.configs.ldap.enabled | toString | title | quote }}
+
+  # CELERY
+  # expressed in KB
+  # CELERY__MAX_MEMORY_PER_CHILD: "200000"
+  # ## 
+  # Note right autoscale value must coincide with worker concurrency value
+  # CELERY__AUTOSCALE_VALUES: "15,10" 
+  # CELERY__WORKER_CONCURRENCY: "10"
+  # ##
+  # CELERY__OPTS: "--without-gossip --without-mingle -Ofair -B -E"
+  # CELERY__BEAT_SCHEDULE: "/mnt/volumes/statics/celerybeat-schedule"
+  # CELERY__LOG_LEVEL: "INFO"
+  # CELERY__LOG_FILE: "/var/log/celery.log"
+  # CELERY__WORKER_NAME: "worker1@%h"
+
+  # Common containers restart policy
+  # RESTART_POLICY_CONDITION: on-failure
+  # RESTART_POLICY_DELAY: 5s
+  # RESTART_POLICY_MAX_ATTEMPTS: "3"
+  # RESTART_POLICY_WINDOW: 120s

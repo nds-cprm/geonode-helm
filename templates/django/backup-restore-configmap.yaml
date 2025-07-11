@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "geonode.backup-restore-settings" . }}
+# https://docs.geonode.org/en/master/intermediate/backup/index.html#requisites-and-setup
+data:    
+  settings.ini: |-
+    {{- with .Values.configs.backupRestore.config }}
+    [database]
+    pgdump = pg_dump
+    pgrestore = pg_restore
+    psql = psql
+
+    [geoserver]
+    datadir = {{ $.Values.volumes.geoserverData.mountPath }}
+    # datadir_exclude_file_path = {{ trim (join "," .geoserver.dataDir.excludeFilePath) }}
+    dumpvectordata = {{ .geoserver.dumpVectorData | toString }}
+    dumprasterdata =  {{ .geoserver.dumpRasterData | toString }}
+    # data_dt_filter = {{ .geoserver.data.dtFilter }}
+    # data_layername_filter = {{ trim (join "," .geoserver.data.layernameFilter) }}
+    # data_layername_exclude_filter = {{ trim (join "," .geoserver.data.layernameExcludeFilter) }}
+
+    [fixtures]
+    apps  = {{ trim (join "," .fixtures.apps) }}
+    dumps = {{ trim (join "," .fixtures.dumps) }}
+   {{- end }}

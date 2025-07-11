@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "django.labels" . | nindent 4 }}
+  name: {{ include "django.fullname" . }}
+spec:
+  ports:
+    - name: wsgi
+      port: {{ .Values.services.django.servicePort }}
+      targetPort: wsgi
+  selector:
+    {{- include "django.selectorLabels" . | nindent 6 }}
+status:
+  loadBalancer: {}

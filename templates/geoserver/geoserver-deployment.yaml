@@ -1,0 +1,127 @@
+{{- $fullName := include "geoserver.fullname" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "geoserver.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "geoserver.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      {{- with .Values.services.geoserver.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        org.{{ .Chart.Name }}/network: {{ .Release.Name }}-{{ .Release.Namespace }}
+        {{- include "geoserver.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $fullName }}
+          {{- with .Values.services.geoserver.image.app }}
+          image: {{ .repository }}:{{ .tag }}
+          imagePullPolicy: {{ .pullPolicy }}
+          {{- end }} 
+          envFrom:
+            - configMapRef:
+                name: {{ include "geonode.environment" . }}
+            - secretRef:
+                name: {{ include "geonode.main-secret" . }}
+            - secretRef:
+                name: {{ include "geonode.database-secret" . }}
+          # livenessProbe:
+          #   tcpSocket:
+          #     port: http-alt
+          #   periodSeconds: 10
+          #   failureThreshold: 3
+          #   initialDelaySeconds: 30
+          # readinessProbe:
+          #   exec:
+          #     command:
+          #       - sh
+          #       - '-c'
+          #       - wget --quiet --spider http://localhost:8080/geoserver/ows
+          #   failureThreshold: 3
+          #   initialDelaySeconds: 60
+          #   periodSeconds: 10
+          #   timeoutSeconds: 5
+          securityContext:
+            {{- toYaml .Values.services.geoserver.securityContext | nindent 12 }}
+          ports:
+            - name: http-alt
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.services.geoserver.resources | nindent 12 }}
+          {{- with .Values.volumes }}
+          volumeMounts:
+            - mountPath: {{ .statics.mountPath }}
+              name: statics
+            - mountPath: {{ .geoserverData.mountPath }}
+              name: geoserver-data-dir
+            - mountPath: {{ .data.mountPath }}
+              name: data
+            - mountPath: {{ .tmp.mountPath }}
+              name: tmp
+          {{- end }}
+      initContainers:
+        - name: copy-geoserver-data-if-necessary
+          {{- with .Values.services.geoserver.image.data }}
+          image: {{ .repository }}:{{ .tag }}
+          imagePullPolicy: {{ .pullPolicy }}
+          {{- end }}          
+          {{- with .Values.volumes.geoserverData }}
+          command: 
+            - 'sh'
+            - '-c'
+            - '[ "$(ls -A {{ .mountPath }})" ] && echo "GEOSERVER_DATA_DIR not empty" || cp -rv ./data/* {{ .mountPath }}'          
+          volumeMounts:
+            - mountPath: {{ .mountPath }}
+              name: geoserver-data-dir
+          {{- end }}
+        - name: wait-for-django
+          image: docker.io/library/busybox:latest
+          imagePullPolicy: IfNotPresent
+          command: 
+            - 'sh'
+            - '-c' 
+            - >
+              until wget -T 5 --spider {{ include "django.internalPath" . }}
+                do echo waiting for django...; sleep 2; 
+              done
+      serviceAccountName: {{ include "geonode.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.services.geoserver.podSecurityContext | nindent 8 }}
+      restartPolicy: Always
+      {{- with .Values.services.geoserver.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.geoserver.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.services.geoserver.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: statics
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.statics-pvc" . }}
+        - name: geoserver-data-dir
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.geoserver-data-pvc" . }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.data-pvc" . }}
+        - name: tmp
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.tmp-pvc" . }}
+status: {}

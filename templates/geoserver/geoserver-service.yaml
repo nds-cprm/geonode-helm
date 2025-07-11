@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "geoserver.labels" . | nindent 4 }}
+  name: {{ include "geoserver.fullname" . }}
+spec:
+  ports:
+    - name: http-alt
+      port: {{ .Values.services.geoserver.servicePort }}
+      targetPort: http-alt
+  selector:
+    {{- include "geoserver.selectorLabels" . | nindent 6 }}
+status:
+  loadBalancer: {}

@@ -1,0 +1,11 @@
+{{- if .Values.configs.django.settings.override }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "geonode.settings-local" . }}
+data:
+  local_settings.py: |-
+    from geonode.settings import *
+
+    {{ .Values.configs.django.settings.content | indent 4 | trim }}
+{{- end }}
