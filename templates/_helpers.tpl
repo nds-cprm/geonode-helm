@@ -66,19 +66,19 @@ Create the name of the service account to use
 Define configmaps
 */}}
 {{- define "geonode.environment" -}}
-{{- printf "%s-environment" (include "geonode.name" .) }}
+{{- printf "%s-envs" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.uwsgi-override" -}}
-{{- printf "%s-wsgi-override" (include "geonode.name" .) }}
+{{- printf "%s-uwsgi-conf" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.settings-local" -}}
-{{- printf "%s-settings-local" (include "geonode.name" .) }}
+{{- printf "%s-local-settings" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.backup-restore-settings" -}}
-{{- printf "%s-backup-restore-settings" (include "geonode.name" .) }}
+{{- printf "%s-backup-settings" (include "geonode.fullname" .) }}
 {{- end }}
 
 
@@ -93,50 +93,54 @@ Default host
 Define PVC names
 */}}
 {{- define "geonode.backup-restore-pvc" -}}
-{{- printf "%s-backup-restore" (include "geonode.name" .) }}
+{{- printf "%s-backup" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.data-pvc" -}}
-{{- printf "%s-data" (include "geonode.name" .) }}
+{{- printf "%s-data" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.geoserver-data-pvc" -}}
-{{- printf "%s-geoserver-data" (include "geonode.name" .) }}
+{{- printf "%s-geoserver" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.statics-pvc" -}}
-{{- printf "%s-statics" (include "geonode.name" .) }}
+{{- printf "%s-static" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.tmp-pvc" -}}
-{{- printf "%s-tmp" (include "geonode.name" .) }}
+{{- printf "%s-tmp" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{/*
 Define Secret names
 */}}
 {{- define "geonode.main-secret" -}}
-{{- printf "%s-main" (include "geonode.name" .) }}
+{{- printf "%s-main" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.database-secret" -}}
-{{- printf "%s-database" (include "geonode.name" .) }}
+{{- if .Values.postgresql.enabled -}}
+{{- .Values.postgresql.primary.extraEnvVarsSecret -}}
+{{- else -}}
+{{- printf "%s-database" (include "geonode.fullname" .) }}
+{{- end }}
 {{- end }}
 
 {{- define "geonode.mail-secret" -}}
-{{- printf "%s-mail" (include "geonode.name" .) }}
+{{- printf "%s-mail" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.recaptcha-secret" -}}
-{{- printf "%s-recaptcha" (include "geonode.name" .) }}
+{{- printf "%s-recaptcha" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.memcached-secret" -}}
-{{- printf "%s-memcached" (include "geonode.name" .) }}
+{{- printf "%s-memcached" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{- define "geonode.ldap-secret" -}}
-{{- printf "%s-ldap" (include "geonode.name" .) }}
+{{- printf "%s-ldap" (include "geonode.fullname" .) }}
 {{- end }}
 
 {{/*
@@ -146,7 +150,7 @@ DB Service - hostname
 {{- if not .Values.postgresql.enabled }}
 {{- $dbHost := .Values.configs.postgres.host -}}
 {{- if not $dbHost }}
-{{- fail "If services.db.external is True, you must set a valid PostgreSQL hostname" -}}
+{{- fail "If 'postgresql.enabled' is False, you must set a valid PostgreSQL credentials on 'configs.postgres'" -}}
 {{- end }} 
 {{- $dbHost }}
 {{- else -}}
