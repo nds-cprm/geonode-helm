@@ -238,25 +238,50 @@ volumes:
   #   mountPath: /etc/nginx
   #   storageClassName: crc-csi-hostpath-provisioner
   statics:
-    storage: 5Gi
     mountPath: /mnt/volumes/statics
-    storageClassName: "" # Change
+    keep: false
+    # volumeName: geonode-tmp
+    storage: 
+      size: 5Gi
+      # className: ""
+      accessModes:
+        - ReadWriteMany
   data:
-    storage: 5Gi
     mountPath: /data
-    storageClassName: "" # Change
+    keep: true
+    # volumeName: geonode-tmp
+    storage: 
+      size: 5Gi
+      # className: ""
+      accessModes:
+        - ReadWriteMany
   geoserverData:
-    storage: 5Gi
     mountPath: /geoserver_data/data
-    storageClassName: "" # Change
+    keep: true
+    # volumeName: geonode-tmp
+    storage: 
+      size: 5Gi
+      # className: ""
+      accessModes:
+        - ReadWriteMany
   backupRestore:
-    storage: 5Gi
     mountPath: /backup_restore
-    storageClassName: "" # Change
+    keep: true
+    # volumeName: geonode-tmp
+    storage: 
+      size: 5Gi
+      # className: ""
+      accessModes:
+        - ReadWriteMany
   tmp:
-    storage: 5Gi
     mountPath: /tmp
-    storageClassName: "" # Change
+    keep: false
+    # volumeName: geonode-tmp
+    storage: 
+      size: 5Gi
+      # className: ""
+      accessModes:
+        - ReadWriteMany
 
 # GeoNode Services
 services:

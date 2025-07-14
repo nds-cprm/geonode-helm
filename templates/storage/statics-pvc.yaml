@@ -5,14 +5,25 @@ metadata:
   labels:
     {{- include "geonode.labels" . | nindent 4 }}
 {{- with .Values.volumes.statics }}
+  {{- if .keep }}
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- end }}
 spec:
-  accessModes:
-    - ReadWriteMany
   volumeMode: Filesystem
-  {{- if .storageClassName }}
-  storageClassName: {{ .storageClassName }}
+  {{- if .volumeName }}
+  volumeName: {{ .volumeName | quote }}
+  {{- end }}
+  accessModes:
+    {{- range .storage.accessModes }}
+    - {{ . }}
+    {{- end }}
+  {{- if .volumeName }}
+  storageClassName: "" 
+  {{- else if .storage.className }} 
+  storageClassName: {{ .storage.className | quote }} 
   {{- end }}
   resources:
     requests:
-      storage: {{ .storage }}
+      storage: {{ .storage.size }}
 {{- end }}
