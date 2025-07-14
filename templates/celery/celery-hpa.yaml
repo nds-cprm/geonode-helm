@@ -1,16 +1,18 @@
+{{- $fullName := include "celery.fullname" . -}}
+{{- $labels := include "celery.labels" . -}}
 {{- with .Values.services.celery }}
 {{- if .autoscaling.enabled }}
-apiVersion: autoscaling/v2beta1
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ .name }}
+  name: {{ $fullName }}
   labels:
-    {{- include "celery.labels" . | nindent 4 }}
+    {{- $labels | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ .name }}
+    name: {{ $fullName }}
   minReplicas: {{ .autoscaling.minReplicas }}
   maxReplicas: {{ .autoscaling.maxReplicas }}
   metrics:
@@ -18,13 +20,17 @@ spec:
     - type: Resource
       resource:
         name: cpu
-        targetAverageUtilization: {{ .autoscaling.targetCPUUtilizationPercentage }}
+        target:
+          averageUtilization: {{ .autoscaling.targetCPUUtilizationPercentage }}
+          type: Utilization
     {{- end }}
     {{- if .autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
-        targetAverageUtilization: {{ .autoscaling.targetMemoryUtilizationPercentage }}
+        target:
+          averageUtilization: {{ .autoscaling.targetMemoryUtilizationPercentage }}
+          type: Utilization
     {{- end }}
 {{- end }}
 {{- end }}

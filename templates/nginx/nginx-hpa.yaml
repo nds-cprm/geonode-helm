@@ -1,6 +1,6 @@
-{{- $fullName := include "django.fullname" . -}}
-{{- $labels := include "django.labels" . -}}
-{{- with .Values.services.django }}
+{{- $fullName := include "nginx.fullname" . -}}
+{{- $labels := include "nginx.labels" . -}}
+{{- with .Values.services.nginx }}
 {{- if .autoscaling.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
