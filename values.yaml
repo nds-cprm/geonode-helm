@@ -512,5 +512,5 @@ postgresql:
   primary:
     extraEnvVarsSecret: geonode-database
     initdb: 
-      scriptsConfigMap: opengeosgb-geonode-initdb
+      scriptsConfigMap: geonode-initdb
 
