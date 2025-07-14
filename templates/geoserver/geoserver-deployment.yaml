@@ -111,6 +111,10 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.services.geoserver.extraHosts }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         - name: statics
           persistentVolumeClaim:

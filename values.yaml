@@ -344,6 +344,12 @@ services:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: &geonodeTag ""
+    
+    extraHosts: []
+    # - ip: 127.0.0.1
+    #   hostnames:
+    #     - localhost.localdomain
+    #     - localhost
 
     podAnnotations: {}
 
@@ -391,6 +397,12 @@ services:
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: *geonodeTag
+
+    extraHosts: []
+    # - ip: 127.0.0.1
+    #   hostnames:
+    #     - localhost.localdomain
+    #     - localhost
 
     podAnnotations: {}
 
@@ -444,7 +456,12 @@ services:
         pullPolicy: *geoserverPullPolicy
         # Overrides the image tag whose default is the chart appVersion.
         tag: *geoserverTag
-      
+    
+    extraHosts: []
+    # - ip: 127.0.0.1
+    #   hostnames:
+    #     - localhost.localdomain
+    #     - localhost
 
     # imagePullSecrets: []
     # nameOverride: ""
