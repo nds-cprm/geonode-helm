@@ -12,12 +12,12 @@ Geoserver Common labels
 {{- define "geoserver.labels" -}}
 helm.sh/chart: {{ include "geonode.chart" . }}
 {{ include "geoserver.selectorLabels" . }}
-{{- if .Values.services.geoserver.tag }}
-app.kubernetes.io/version: {{ .Values.services.geoserver.tag | quote }}
+{{- if .Values.services.geoserver.image.app.tag }}
+app.kubernetes.io/version: {{ .Values.services.geoserver.image.app.tag | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.openshift.io/runtime: hibernate
-app.kubernetes.io/component: backend
+app.kubernetes.io/component: ogc-server
 app.kubernetes.io/part-of: geonode
 {{- end }}
 

@@ -13,8 +13,8 @@ Django Common labels
 {{- define "django.labels" -}}
 helm.sh/chart: {{ include "geonode.chart" . }}
 {{ include "django.selectorLabels" . }}
-{{- if .Values.services.django.tag }}
-app.kubernetes.io/version: {{ .Values.services.django.tag | quote }}
+{{- if .Values.services.django.image.tag }}
+app.kubernetes.io/version: {{ .Values.services.django.image.tag | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.openshift.io/runtime: django
