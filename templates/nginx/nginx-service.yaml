@@ -8,10 +8,10 @@ spec:
   ports:
     - name: "http"
       port: 80
-      targetPort: 8080
+      targetPort: http-alt
     - name: "https"
       port: 443
-      targetPort: 8443
+      targetPort: https-alt
   selector:
     {{- include "nginx.selectorLabels" . | nindent 6 }}
 status:

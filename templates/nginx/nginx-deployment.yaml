@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "nginx.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.services.nginx.replicaCount }}
   selector:
     matchLabels:
       {{- include "nginx.selectorLabels" . | nindent 6 }}
@@ -16,6 +16,7 @@ spec:
     metadata:
       {{- with .Values.services.nginx.podAnnotations }}
       annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
@@ -34,26 +35,21 @@ spec:
           securityContext:
             {{- toYaml .Values.services.nginx.securityContext | nindent 12 }}
           ports:
-            - name: http
-              containerPort: 80
+            - name: http-alt
+              containerPort: 8080
               protocol: TCP
-            - name: https
-              containerPort: 443
+            - name: https-alt
+              containerPort: 8443
               protocol: TCP
-          # livenessProbe:
-          #   tcpSocket:
-          #     port: http
-          #   periodSeconds: 10
-          #   failureThreshold: 3
-          # readinessProbe:
-          #   exec:
-          #     command:
-          #       - sh
-          #       - '-c'
-          #       - wget --quiet --spider  http://127.0.0.1
-          #   initialDelaySeconds: 10
-          #   periodSeconds: 20
-          #   failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - wget --quiet --spider  http://127.0.0.1:8080/
+            periodSeconds: 30
+            failureThreshold: 3
+            initialDelaySeconds: 60
           resources:
             {{- toYaml .Values.services.nginx.resources | nindent 12 }}
           {{- with .Values.volumes }}

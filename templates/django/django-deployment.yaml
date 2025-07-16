@@ -7,7 +7,7 @@ metadata:
   labels:
     {{- include "django.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.services.django.replicaCount }}
   selector:
     matchLabels:
       {{- include "django.selectorLabels" . | nindent 6 }}
@@ -17,6 +17,7 @@ spec:
     metadata:
       {{- with .Values.services.django.podAnnotations }}
       annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
@@ -65,21 +66,16 @@ spec:
           imagePullPolicy: {{ .pullPolicy }}
           {{- end }}
           name: {{ $fullName }}
-          # livenessProbe:
-          #   tcpSocket:
-          #     port: wsgi
-          #   periodSeconds: 20
-          #   failureThreshold: 3
-          #   initialDelaySeconds: 120
-          # readinessProbe:
-          #   exec:s
-          #     command:
-          #       - sh
-          #       - '-c'
-          #       - wget --quiet --spider http://localhost:8000
-          #   initialDelaySeconds: 120
-          #   periodSeconds: 20
-          #   failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - wget --quiet --spider http://127.0.0.1:8000/version.txt || exit 1
+            failureThreshold: 3
+            initialDelaySeconds: 180
+            timeoutSeconds: 5
+            periodSeconds: 30
           securityContext:
             {{- toYaml .Values.services.django.securityContext | nindent 12 }}
           ports:
@@ -111,7 +107,6 @@ spec:
               name: tmp
             - mountPath: {{ .backupRestore.mountPath }}
               name: backup-restore
-              readOnly: true
             {{- end }}
       initContainers:
         {{- $dbHost := (include "geonode.db.hostname" .) }}

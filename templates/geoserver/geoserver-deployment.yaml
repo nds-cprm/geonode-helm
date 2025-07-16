@@ -6,7 +6,7 @@ metadata:
   labels:
     {{- include "geoserver.labels" . | nindent 4 }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.services.geoserver.replicaCount }}
   selector:
     matchLabels:
       {{- include "geoserver.selectorLabels" . | nindent 6 }}
@@ -16,6 +16,7 @@ spec:
     metadata:
       {{- with .Values.services.geoserver.podAnnotations }}
       annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
@@ -35,22 +36,15 @@ spec:
                 name: {{ include "geonode.main-secret" . }}
             - secretRef:
                 name: {{ include "geonode.database-secret" . }}
-          # livenessProbe:
-          #   tcpSocket:
-          #     port: http-alt
-          #   periodSeconds: 10
-          #   failureThreshold: 3
-          #   initialDelaySeconds: 30
-          # readinessProbe:
-          #   exec:
-          #     command:
-          #       - sh
-          #       - '-c'
-          #       - wget --quiet --spider http://localhost:8080/geoserver/ows
-          #   failureThreshold: 3
-          #   initialDelaySeconds: 60
-          #   periodSeconds: 10
-          #   timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - wget --quiet --spider  http://127.0.0.1:8080/geoserver
+            periodSeconds: 30
+            failureThreshold: 3
+            initialDelaySeconds: 60
           securityContext:
             {{- toYaml .Values.services.geoserver.securityContext | nindent 12 }}
           ports:
