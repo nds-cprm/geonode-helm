@@ -71,7 +71,7 @@ configs:
     password: ''
   recaptcha:
     enabled: false
-    signupFormClass: geonode.people.forms.AllauthReCaptchaSignupForm
+    signupFormClass: geonode.people.forms.recaptcha.AllauthReCaptchaSignupForm
     publicKey: ''
     privateKey: ''
   misc:
