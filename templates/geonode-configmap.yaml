@@ -1,4 +1,7 @@
 {{- $httpScheme := ternary "http" "https" (empty .Values.ingress.tlsSecretName) -}}
+{{- if .Values.configs.externalProxy.enabled -}}
+{{- $httpScheme = .Values.configs.externalProxy.proto -}}
+{{- end -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:

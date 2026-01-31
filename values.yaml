@@ -31,6 +31,9 @@ ingress:
 configs:
   projectName: geonode
   domain: apps-crc.testing
+  externalProxy:
+    enabled: false
+    proto: https
   languages:
     - name: English
       code: en-us
@@ -239,7 +242,7 @@ volumes:
   #   storageClassName: crc-csi-hostpath-provisioner
   statics:
     mountPath: /mnt/volumes/statics
-    keep: false
+    keep: true
     # volumeName: geonode-tmp
     storage: 
       size: 5Gi
@@ -290,7 +293,7 @@ services:
       repository: geonode/nginx
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
-      tag: "1.25.3-latest"
+      tag: "1.26.3-geonode"
 
     config:
       resolver: ''
@@ -450,7 +453,7 @@ services:
       app:
         repository: geonode/geoserver
         pullPolicy: &geoserverPullPolicy IfNotPresent
-        tag: &geoserverTag "2.24.4-v1"
+        tag: &geoserverTag "2.27.3-geonode"
       data:
         repository: geonode/geoserver_data
         pullPolicy: *geoserverPullPolicy
@@ -509,6 +512,8 @@ services:
 
 rabbitmq:
   enabled: true
+  image:
+    repository: bitnamilegacy/rabbitmq
   auth:
     username: blah
     password: blah
@@ -517,6 +522,8 @@ rabbitmq:
 
 memcached:
   enabled: true
+  image:
+    repository: bitnamilegacy/memcached
   auth:
     enabled: false
     username: blah
@@ -524,6 +531,8 @@ memcached:
 
 postgresql:
   enabled: true
+  image:
+    repository: bitnamilegacy/postgres
   auth:
     postgresPassword: postgres
   primary:
@@ -531,3 +540,7 @@ postgresql:
     initdb: 
       scriptsConfigMap: geonode-initdb
 
+# Bitnami Legacy
+global:
+  security:
+    allowInsecureImages: true
