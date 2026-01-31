@@ -36,7 +36,7 @@ spec:
                 - '-c'
               args:
                 - > 
-                  python manage.py backup --backup-dir={{ .Values.volumes.backupRestore.mountPath }} 
+                  python manage.py backup --backup-dir={{ .Values.volumes.backupRestore.mountPath }}/{{ .Values.configs.projectName | default "geonode" }} 
                   --config=/var/run/geonode/backup-restore/settings.ini --force
               env:
                 - name: IS_CELERY
@@ -94,6 +94,10 @@ spec:
           securityContext:
             {{- toYaml .Values.services.django.podSecurityContext | nindent 12 }}    
           restartPolicy: OnFailure
+          {{- with .Values.services.django.extraHosts }}
+          hostAliases:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.services.django.nodeSelector }}
           nodeSelector:
             {{- toYaml . | nindent 12 }}
