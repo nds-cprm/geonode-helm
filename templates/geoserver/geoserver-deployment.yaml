@@ -63,6 +63,8 @@ spec:
               name: data
             - mountPath: {{ .tmp.mountPath }}
               name: tmp
+            - mountPath: {{ .backupRestore.mountPath }}
+              name: backup-restore
           {{- end }}
       initContainers:
         - name: copy-geoserver-data-if-necessary
@@ -116,6 +118,9 @@ spec:
         - name: geoserver-data-dir
           persistentVolumeClaim:
             claimName: {{ include "geonode.geoserver-data-pvc" . }}
+        - name: backup-restore
+          persistentVolumeClaim:
+            claimName: {{ include "geonode.backup-restore-pvc" . }}
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "geonode.data-pvc" . }}
