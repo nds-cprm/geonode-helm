@@ -37,5 +37,5 @@ Geoserver Service - hostname
 {{- end }}
 
 {{- define "geoserver.internalPath" -}}
-{{- printf "http://%s:%d/geoserver" ( include "geoserver.hostname" . ) ( .Values.services.geoserver.servicePort | int ) -}}
+{{- printf "http://%s:%d/geoserver/" ( include "geoserver.hostname" . ) ( .Values.services.geoserver.servicePort | int ) -}}
 {{- end }}
