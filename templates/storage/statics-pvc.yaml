@@ -12,7 +12,7 @@ metadata:
 spec:
   volumeMode: Filesystem
   {{- if .volumeName }}
-  volumeName: {{ .volumeName | quote }}
+  volumeName: {{ (printf "%s-%s" $.Release.Namespace .volumeName) | quote }}
   {{- end }}
   accessModes:
     {{- range .storage.accessModes }}

@@ -93,23 +93,23 @@ Default host
 Define PVC names
 */}}
 {{- define "geonode.backup-restore-pvc" -}}
-{{- printf "%s-backup" (include "geonode.fullname" .) }}
+{{- default (printf "%s-backup" (include "geonode.fullname" .)) .Values.volumes.backupRestore.volumeName -}}
 {{- end }}
 
 {{- define "geonode.data-pvc" -}}
-{{- printf "%s-data" (include "geonode.fullname" .) }}
+{{- default (printf "%s-data" (include "geonode.fullname" .)) .Values.volumes.data.volumeName -}}
 {{- end }}
 
 {{- define "geonode.geoserver-data-pvc" -}}
-{{- printf "%s-geoserver" (include "geonode.fullname" .) }}
+{{- default (printf "%s-geoserver" (include "geonode.fullname" .)) .Values.volumes.geoserverData.volumeName -}}
 {{- end }}
 
 {{- define "geonode.statics-pvc" -}}
-{{- printf "%s-static" (include "geonode.fullname" .) }}
+{{- default (printf "%s-static" (include "geonode.fullname" .)) .Values.volumes.statics.volumeName -}}
 {{- end }}
 
 {{- define "geonode.tmp-pvc" -}}
-{{- printf "%s-tmp" (include "geonode.fullname" .) }}
+{{- default (printf "%s-tmp" (include "geonode.fullname" .)) .Values.volumes.tmp.volumeName -}}
 {{- end }}
 
 {{/*
