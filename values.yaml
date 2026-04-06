@@ -195,6 +195,7 @@ configs:
       -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine
   celery:
     brokerURL: ""
+    # resultBackend: ""
   #   scheduler:
   postgres: 
     host: ''
@@ -290,7 +291,7 @@ volumes:
 services:
   nginx:
     image:
-      repository: geonode/nginx
+      repository: docker.io/geonode/nginx
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: "1.26.3-v1"
@@ -346,7 +347,7 @@ services:
     uwsgi:
       override: false
     image:
-      repository: geonode/geonode
+      repository: docker.io/geonode/geonode
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: &geonodeTag ""
@@ -399,7 +400,7 @@ services:
 
   celery:
     image:
-      repository: geonode/geonode
+      repository: docker.io/geonode/geonode
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
       tag: *geonodeTag
@@ -454,7 +455,7 @@ services:
     servicePort: 8080
     image:
       app:
-        repository: geonode/geoserver
+        repository: docker.io/geonode/geoserver
         pullPolicy: &geoserverPullPolicy IfNotPresent
         tag: &geoserverTag "2.27.4-latest"
       data:
@@ -522,6 +523,9 @@ rabbitmq:
     password: blah
     updatePassword: false
     erlangCookie: blah
+
+# redis:
+#   architecture: standalone
 
 memcached:
   enabled: true
