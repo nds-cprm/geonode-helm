@@ -57,13 +57,14 @@ data:
   {{ end }}
 
   # Django Haystack
-  # TODO: Ser if enabled
-  {{ with .Values.configs.haystack }}
+  {{- with .Values.configs.haystack }}
   HAYSTACK_SEARCH: {{ .enabled | toString | title | quote }}
+  {{- if .enabled -}}
   HAYSTACK_ENGINE_URL: {{ .engine.url }}
   HAYSTACK_ENGINE_INDEX_NAME: {{ .engine.indexName }} 
   HAYSTACK_SEARCH_RESULTS_PER_PAGE: {{ .resultsPerPage | quote }} 
-  {{ end }}
+  {{- end }}
+  {{- end }}
 
   # #################
   # nginx
