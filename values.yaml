@@ -293,7 +293,7 @@ services:
       repository: geonode/nginx
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
-      tag: "1.26.3-geonode"
+      tag: "1.26.3-v1"
 
     config:
       resolver: ''
@@ -456,7 +456,7 @@ services:
       app:
         repository: geonode/geoserver
         pullPolicy: &geoserverPullPolicy IfNotPresent
-        tag: &geoserverTag "2.27.3-geonode"
+        tag: &geoserverTag "2.27.4-latest"
       data:
         repository: geonode/geoserver_data
         pullPolicy: *geoserverPullPolicy
