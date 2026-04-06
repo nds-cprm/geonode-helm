@@ -532,7 +532,8 @@ memcached:
 postgresql:
   enabled: true
   image:
-    repository: bitnamilegacy/postgres
+    repository: bitnamilegacy/postgresql
+    tag: 17.6.0
   auth:
     postgresPassword: postgres
   primary:
