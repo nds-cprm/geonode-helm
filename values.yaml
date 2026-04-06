@@ -242,7 +242,7 @@ volumes:
   #   storageClassName: crc-csi-hostpath-provisioner
   statics:
     mountPath: /mnt/volumes/statics
-    keep: true
+    keep: false
     # volumeName: geonode-tmp
     storage: 
       size: 5Gi
@@ -251,7 +251,7 @@ volumes:
         - ReadWriteMany
   data:
     mountPath: /data
-    keep: true
+    keep: false
     # volumeName: geonode-tmp
     storage: 
       size: 5Gi
@@ -260,7 +260,7 @@ volumes:
         - ReadWriteMany
   geoserverData:
     mountPath: /geoserver_data/data
-    keep: true
+    keep: false
     # volumeName: geonode-tmp
     storage: 
       size: 5Gi
@@ -269,7 +269,7 @@ volumes:
         - ReadWriteMany
   backupRestore:
     mountPath: /backup_restore
-    keep: true
+    keep: false
     # volumeName: geonode-tmp
     storage: 
       size: 5Gi
@@ -297,6 +297,9 @@ services:
 
     config:
       resolver: ''
+      ports:
+        http: 80
+        https: 443
 
     podAnnotations: {}
 

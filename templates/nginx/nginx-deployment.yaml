@@ -36,17 +36,17 @@ spec:
             {{- toYaml .Values.services.nginx.securityContext | nindent 12 }}
           ports:
             - name: http-alt
-              containerPort: 8080
+              containerPort: {{ .Values.services.nginx.config.ports.http }}
               protocol: TCP
             - name: https-alt
-              containerPort: 8443
+              containerPort: {{ .Values.services.nginx.config.ports.https }}
               protocol: TCP
           livenessProbe:
             exec:
               command:
                 - sh
                 - '-c'
-                - wget --quiet --spider  http://127.0.0.1:8080/
+                - {{ printf "wget --quiet --spider  http://127.0.0.1:%d/" (.Values.services.nginx.config.ports.http | int) }}
             periodSeconds: 30
             failureThreshold: 3
             initialDelaySeconds: 60
