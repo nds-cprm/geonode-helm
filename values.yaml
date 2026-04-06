@@ -524,9 +524,6 @@ rabbitmq:
     updatePassword: false
     erlangCookie: blah
 
-# redis:
-#   architecture: standalone
-
 memcached:
   enabled: true
   image:
