@@ -162,9 +162,9 @@ data:
   # #################
   DEBUG: {{ .Values.configs.debug | toString | title | quote }}
 
-  STATIC_ROOT: /mnt/volumes/statics/static/
-  MEDIA_ROOT: /mnt/volumes/statics/uploaded/
-  GEOIP_PATH: /mnt/volumes/statics/geoip.db
+  STATIC_ROOT: {{ printf "%s/static/" (.Values.volumes.statics.mountPath | trimSuffix "/") }}
+  MEDIA_ROOT: {{ printf "%s/uploaded/" (.Values.volumes.statics.mountPath | trimSuffix "/") }} 
+  GEOIP_PATH: {{ printf "%s/geoip.db" (.Values.volumes.statics.mountPath | trimSuffix "/") }}
 
   CACHE_BUSTING_STATIC_ENABLED: {{ .Values.configs.cacheBustingStaticEnabled | toString | title | quote }}
 
