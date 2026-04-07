@@ -1,4 +1,4 @@
-{{- $geonodeBaseDir := printf "/usr/src/%s" .Values.configs.projectName -}}
+{{- $geonodeBaseDir := include "geonode.appDir" . -}}
 {{- $fullName := include "celery.fullname" . -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -88,7 +88,7 @@ spec:
             {{- end }}
             {{- if .Values.configs.django.settings.override }}
             - name: local-settings
-              mountPath: {{ printf "%s/geonode/local_settings.py" $geonodeBaseDir }}
+              mountPath: {{ printf "%s/%s/local_settings.py" $geonodeBaseDir (ternary .Values.configs.geonodeProject.name "geonode" .Values.configs.geonodeProject.isGeoNodeProject) }}
               subPath: local_settings.py
               readOnly: true
             {{- end }}
