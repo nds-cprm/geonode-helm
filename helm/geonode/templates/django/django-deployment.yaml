@@ -66,6 +66,14 @@ spec:
           imagePullPolicy: {{ .pullPolicy }}
           {{- end }}
           name: {{ $fullName }}
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - {{ printf "wget --quiet --spider http://127.0.0.1:%d/ || exit 1" (.Values.services.django.servicePort | int) }}
+            failureThreshold: 30
+            periodSeconds: 20
           livenessProbe:
             exec:
               command:
@@ -73,7 +81,7 @@ spec:
                 - '-c'
                 - {{ printf "wget --quiet --spider http://127.0.0.1:%d/ || exit 1" (.Values.services.django.servicePort | int) }}
             failureThreshold: 3
-            initialDelaySeconds: 180
+            initialDelaySeconds: 30
             timeoutSeconds: 5
             periodSeconds: 30
           securityContext:

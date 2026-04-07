@@ -36,6 +36,14 @@ spec:
                 name: {{ include "geonode.main-secret" . }}
             - secretRef:
                 name: {{ include "geonode.database-secret" . }}
+          startupProbe:
+            exec:
+              command:
+                - sh
+                - '-c'
+                - wget --quiet --spider  http://127.0.0.1:8080/geoserver
+            failureThreshold: 20
+            periodSeconds: 20
           livenessProbe:
             exec:
               command:
@@ -43,8 +51,9 @@ spec:
                 - '-c'
                 - wget --quiet --spider  http://127.0.0.1:8080/geoserver
             periodSeconds: 30
-            failureThreshold: 3
-            initialDelaySeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 2
+            initialDelaySeconds: 30
           securityContext:
             {{- toYaml .Values.services.geoserver.securityContext | nindent 12 }}
           ports:
