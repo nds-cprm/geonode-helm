@@ -37,7 +37,7 @@ spec:
               command:
                 - sh
                 - '-c'
-                - celery inspect ping --destination worker1@$HOSTNAME
+                - celery inspect ping --destination {{ .Values.configs.celery.worker.name | replace "%h" "$HOSTNAME"}}
             initialDelaySeconds: 30
             periodSeconds: 30
             failureThreshold: 3

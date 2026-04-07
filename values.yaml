@@ -202,7 +202,31 @@ configs:
   celery:
     brokerURL: ""
     resultBackend: ""
-  #   scheduler:
+    app: "geonode.celery_app:app"
+    stateDB: "/mnt/volumes/statics/worker@%h.state"
+    commandOpts: "--without-gossip --without-mingle -Ofair -E"     
+    log:
+      level: "ERROR"
+      file: "/var/log/celery.log"
+    worker:
+      name: "worker@%h"
+      concurrency: 4
+      autoscaleValues: 
+        max: 10
+        min: 5
+      maxMemoryPerChild: 200000
+      maxTasksPerChild: 10
+    beat: 
+      scheduler: "celery.beat:PersistentScheduler"
+      scheduleFile: "/mnt/volumes/statics/celerybeat-schedule"
+      logFile: "/var/log/celery_beat.log"
+    harvester:
+      name: "harvester@%h" 
+      concurrency: 10
+      autoscaleValues: 
+        max: 15
+        min: 10
+      maxMemoryPerChild: 500000 
   postgres: 
     host: ''
     port: 5432

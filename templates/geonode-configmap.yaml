@@ -34,29 +34,17 @@ data:
   # backend
   # #################
   # Postgres in geonode-postgres-secrets.yaml
-  {{- if .Values.redis.enabled }}
-  {{- $redisURL := printf "redis://:%s@%s-master:%d" (.Values.redis.auth.password) (include "common.names.fullname" .Subcharts.redis) (.Values.redis.master.service.ports.redis | default 6379 | int) }}
-  BROKER_URL: {{ printf "%s/0" $redisURL }}
-  CELERY_RESULT_BACKEND: {{ printf "%s/1" $redisURL }}
-  {{- else }}
-  BROKER_URL: {{ .Values.configs.celery.brokerURL }}
-  CELERY_RESULT_BACKEND: {{ .Values.configs.celery.resultBackend }}
-  {{- end }}
-  CELERY_BEAT_SCHEDULER: celery.beat:PersistentScheduler
-  ASYNC_SIGNALS: "True"
-
   SITEURL: {{ $httpScheme }}://{{ include "geonode.hostname" . }}/
-
   ALLOWED_HOSTS: '[''{{ include "django.hostname" . }}'', ''{{ include "geonode.hostname" . }}'', ''127.0.0.1'', ''localhost'']'
 
   # Data Uploader
   DEFAULT_BACKEND_UPLOADER: geonode.importer
-  {{ with .Values.configs.uploader }}
+  {{- with .Values.configs.uploader }}
   TIME_ENABLED: {{ .timeEnabled | toString | title | quote }}
   MOSAIC_ENABLED: {{ .mosaicEnabled | toString | title | quote }}
   DEFAULT_MAX_UPLOAD_SIZE: {{ .maxUploadSize | int | quote }}
   DEFAULT_MAX_PARALLEL_UPLOADS_PER_USER: {{ .maxParallelUploadsPerUser | quote }}
-  {{ end }}
+  {{- end }}
 
   PERMISSION_CACHE_EXPIRATION_TIME: "3600"
 
@@ -78,9 +66,9 @@ data:
   GEONODE_LB_PORT: {{ .Values.services.django.servicePort | toString | quote }}
   NGINX_BASE_URL: {{ $httpScheme }}://{{ include "geonode.hostname" . }}
 
-  {{ if eq $httpScheme "https" }}
+  {{- if eq $httpScheme "https" }}
   EXTERNAL_PROXY_SCHEME: {{ $httpScheme }}
-  {{ end }}
+  {{- end }}
 
   HTTP_HOST: {{ include "geonode.hostname" . }}
   HTTPS_HOST: ""
@@ -106,7 +94,7 @@ data:
   GEOSERVER_PUBLIC_LOCATION: {{ $httpScheme }}://{{ include "geonode.hostname" . }}/geoserver/
   GEOSERVER_LOCATION: {{ include "geoserver.internalPath" . }}
 
-  {{ with .Values.configs.geoserver }}
+  {{- with .Values.configs.geoserver }}
   OGC_REQUEST_TIMEOUT: {{ .ogcRequest.timeout | quote }}
   OGC_REQUEST_MAX_RETRIES: {{ .ogcRequest.maxRetries | quote }}
   OGC_REQUEST_BACKOFF_FACTOR: {{ .ogcRequest.backoffFactor | quote }}
@@ -117,14 +105,14 @@ data:
   ENABLE_JSONP: 'True'
   outFormat: text/javascript
   GEOSERVER_JAVA_OPTS: {{ .javaOpts | quote }}
-  {{ end }}
+  {{- end }}
 
   # #################
   # Security
   # #################
 
   # EMAIL Notifications
-  {{ with .Values.configs.mail }}
+  {{- with .Values.configs.mail }}
   EMAIL_ENABLE: {{ .enabled | toString | title | quote }}
   {{- if .enabled }}
   DEFAULT_FROM_EMAIL: {{ .defaultFrom }} 
@@ -133,7 +121,7 @@ data:
   {{- end }}
 
   # Session/Access Control
-  {{ with .Values.configs.accessControl }}
+  {{- with .Values.configs.accessControl }}
   LOCKDOWN_GEONODE: {{ .lockdownGeoNode | toString | title | quote }}
   X_FRAME_OPTIONS: {{ .xFrameOptions }}
   SESSION_ENGINE: django.contrib.sessions.backends.cached_db
@@ -146,10 +134,10 @@ data:
   GEOSERVER_CORS_ALLOWED_ORIGINS: {{ .cors.geoserver.allowedOrigins | quote }}
   GEOSERVER_CORS_ALLOWED_METHODS: {{ .cors.geoserver.allowedMethods }}
   GEOSERVER_CORS_ALLOWED_HEADERS: {{ .cors.geoserver.allowedHeaders | quote }}
-  {{ end  }}
+  {{- end }}
 
   # Users Registration
-  {{ with .Values.configs.registration }}
+  {{- with .Values.configs.registration }}
   ACCOUNT_OPEN_SIGNUP: {{ .account.openSignUp | toString | title | quote }}
   ACCOUNT_EMAIL_REQUIRED: {{ .account.emailRequired | toString | title | quote }}
   ACCOUNT_APPROVAL_REQUIRED: {{ .account.approvalRequired | toString | title | quote }}
@@ -160,7 +148,7 @@ data:
   ACCOUNT_AUTHENTICATION_METHOD: {{ .account.authenticationMethod }}
   AUTO_ASSIGN_REGISTERED_MEMBERS_TO_REGISTERED_MEMBERS_GROUP_NAME: {{ .autoAssignRegisteredToMembersGroup | toString | title | quote }}
   AUTO_ASSIGN_REGISTERED_MEMBERS_TO_CONTRIBUTORS: {{ .autoAssignRegisteredToContributorsGroup | toString | title | quote }}
-  {{ end }}
+  {{- end }}
 
   # #################
   # Production and
@@ -186,7 +174,7 @@ data:
   GEONODE_CLIENT_LAYER_PREVIEW_LIBRARY: {{ .Values.configs.gisClient.layerPreviewLibrary | quote }}
 
   # Monitoring
-  {{ with .Values.configs.monitoring }}
+  {{- with .Values.configs.monitoring }}
   MONITORING_ENABLED: {{ .enabled | toString | title | quote }}
   {{- if .enabled }}
   MONITORING_DATA_TTL: {{ .dataTTL | quote }}
@@ -199,36 +187,75 @@ data:
   {{- end }}
 
   # Other Options/Contribs
-  {{ with .Values.configs.misc }}
+  {{- with .Values.configs.misc }}
   MODIFY_TOPICCATEGORY: {{ .modifyTopicCategory | toString | title | quote }}
   AVATAR_GRAVATAR_SSL: {{ .avatarGravatarSSL | toString | title | quote }}
   EXIF_ENABLED: {{ .exifEnabled | toString | title | quote }}
   CREATE_LAYER: {{ .createLayer | toString | title | quote }}
   FAVORITE_ENABLED: {{ .favoriteEnabled | toString | title | quote }}
-  {{ end }}
+  {{- end }}
 
   # Advanced Workflow
-  {{ with .Values.configs.publishWorkflow }}
+  {{- with .Values.configs.publishWorkflow }}
   RESOURCE_PUBLISHING: {{ .resourcePublishing | toString | title | quote }}
   ADMIN_MODERATE_UPLOADS: {{ .adminModerateUploads | toString | title | quote }}
-  {{ end }}
+  {{- end }}
 
   # LDAP - moved to secrets
   LDAP_ENABLED: {{ .Values.configs.ldap.enabled | toString | title | quote }}
 
-  # CELERY
-  # expressed in KB
-  # CELERY__MAX_MEMORY_PER_CHILD: "200000"
-  # ## 
-  # Note right autoscale value must coincide with worker concurrency value
-  # CELERY__AUTOSCALE_VALUES: "15,10" 
-  # CELERY__WORKER_CONCURRENCY: "10"
+  # CELERY settings
+  {{- if .Values.redis.enabled }}
+  {{- $redisURL := printf "redis://:%s@%s-master:%d" (.Values.redis.auth.password) (include "common.names.fullname" .Subcharts.redis) (.Values.redis.master.service.ports.redis | default 6379 | int) }}
+  BROKER_URL: {{ printf "%s/0" $redisURL }}
+  CELERY_RESULT_BACKEND: {{ printf "%s/1" $redisURL }}
+  {{- else }}
+  BROKER_URL: {{ .Values.configs.celery.brokerURL }}
+  CELERY_RESULT_BACKEND: {{ .Values.configs.celery.resultBackend }}
+  {{- end }}
+  
+  ASYNC_SIGNALS: "True"
+
+  {{- with .Values.configs.celery -}}  
+  # app
+  CELERY_APP: {{ .app | quote }}
+  CELERY__OPTS: {{ .commandOpts | quote }}
+
+  # State db
+  CELERY__STATE_DB: {{ .stateDB | quote }}
+  
   # ##
-  # CELERY__OPTS: "--without-gossip --without-mingle -Ofair -B -E"
-  # CELERY__BEAT_SCHEDULE: "/mnt/volumes/statics/celerybeat-schedule"
-  # CELERY__LOG_LEVEL: {{ .Values.configs.celery.log.level | quote }}
-  # CELERY__LOG_FILE: "/var/log/celery.log"
-  # CELERY__WORKER_NAME: "worker1@%h"
+  # worker
+  CELERY__WORKER_NAME: {{ .worker.name | quote }}
+  # Note right autoscale value must coincide with worker concurrency value
+  CELERY__WORKER_CONCURRENCY: {{ .worker.concurrency | int | toString | quote }}
+  CELERY__AUTOSCALE_VALUES: {{ (printf "%d,%d" (.worker.autoscaleValues.max | int) (.worker.autoscaleValues.min | int)) | quote }}
+  # expressed in KB
+  CELERY__MAX_MEMORY_PER_CHILD: {{ .worker.maxMemoryPerChild | toString | quote }}
+  # max tasks
+  CELERY__MAX_TASKS_PER_CHILD: {{ .worker.maxTasksPerChild | toString | quote }}
+  
+  # logs
+  CELERY__LOG_LEVEL: {{ .log.level | quote }}
+  {{- if .log.file }}
+  CELERY__LOG_FILE: {{ .log.file | quote }}
+  {{- end }}
+
+  # Beat
+  # inherited from django_celert_beat
+  CELERY_BEAT_SCHEDULER: {{ .beat.scheduler | quote }}
+  # others for clery-cmd
+  {{- if .beat.scheduleFile }}
+  CELERY__BEAT_SCHEDULE_FILE: {{ .beat.scheduleFile | quote }}
+  {{- end }}
+  CELERY__BEAT_LOG: {{ .beat.logFile }}
+
+  # Harvester worker
+  CELERY__HARVESTER_WORKER_NAME: {{ .harvester.name | quote }}
+  CELERY__HARVESTER_CONCURRENCY: {{ .harvester.concurrency | int | toString | quote }}
+  CELERY__HARVESTER_AUTOSCALE_VALUES: {{ (printf "%d,%d" (.harvester.autoscaleValues.max | int) (.harvester.autoscaleValues.min | int)) | quote }}
+  CELERY__HARVESTER_MAX_MEMORY_PER_CHILD: {{ .harvester.maxMemoryPerChild | int | toString | quote }}
+  {{- end }}
 
   # Common containers restart policy
   # RESTART_POLICY_CONDITION: on-failure
@@ -236,5 +263,6 @@ data:
   # RESTART_POLICY_MAX_ATTEMPTS: "3"
   # RESTART_POLICY_WINDOW: 120s
 
+  # Harvester monitor
   HARVESTING_MONITOR_ENABLED: {{ .Values.configs.harvestingMonitor.enabled | default true | toString | title | quote}}
   HARVESTING_MONITOR_DELAY: {{ .Values.configs.harvestingMonitor.delay | default 60 | toString | quote }}
