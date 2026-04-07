@@ -39,8 +39,9 @@ spec:
                 - '-c'
                 - celery inspect ping --destination {{ .Values.configs.celery.worker.name | replace "%h" "$HOSTNAME"}}
             initialDelaySeconds: 30
+            timeoutSeconds: 5
             periodSeconds: 30
-            failureThreshold: 3
+            failureThreshold: 2
           envFrom:
             - configMapRef:
                 name: {{ include "geonode.environment" . }}
