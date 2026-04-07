@@ -61,6 +61,12 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+{{/*
+Define app dir
+*/}}
+{{- define "geonode.appDir" -}}
+{{- printf "/usr/src/%s" (ternary "project" "geonode" .Values.configs.geonodeProject.isGeoNodeProject) -}}
+{{- end }}
 
 {{/*
 Define configmaps

@@ -7,7 +7,7 @@ kind: ConfigMap
 metadata:
   name: {{ include "geonode.environment" . }}
 data:
-  COMPOSE_PROJECT_NAME: {{ .Values.configs.projectName }}   # Included in geoserver's entrypoint
+  COMPOSE_PROJECT_NAME: {{ printf "%s_%s" .Release.Name .Release.Namespace }}   # Included in geoserver's entrypoint
   # See https://github.com/containers/podman/iss TIMEENAues/13889
   # DOCKER_BUILDKIT=0
   # DOCKER_ENV: production
@@ -27,7 +27,7 @@ data:
   {{- end }}
   LANGUAGE_CODE: {{ .Values.configs.languageCode }}  
   
-  DJANGO_SETTINGS_MODULE: {{ printf "%s.%s" .Values.configs.projectName ( .Values.configs.django.settings.override | ternary "local_settings" "settings" ) }}
+  DJANGO_SETTINGS_MODULE: {{ printf "%s.%s" (ternary .Values.configs.geonodeProject.name "geonode" .Values.configs.geonodeProject.isGeoNodeProject) ( .Values.configs.django.settings.override | ternary "local_settings" "settings" ) }}
   GEONODE_INSTANCE_NAME: geonode # serviço (docker, k8s) onde está o NGINX
 
   # #################
@@ -226,7 +226,7 @@ data:
   # ##
   # CELERY__OPTS: "--without-gossip --without-mingle -Ofair -B -E"
   # CELERY__BEAT_SCHEDULE: "/mnt/volumes/statics/celerybeat-schedule"
-  # CELERY__LOG_LEVEL: "INFO"
+  # CELERY__LOG_LEVEL: {{ .Values.configs.celery.log.level | quote }}
   # CELERY__LOG_FILE: "/var/log/celery.log"
   # CELERY__WORKER_NAME: "worker1@%h"
 

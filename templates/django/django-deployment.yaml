@@ -1,4 +1,4 @@
-{{- $geonodeBaseDir := printf "/usr/src/%s" .Values.configs.projectName -}}
+{{- $geonodeBaseDir := include "geonode.appDir" . -}}
 {{- $fullName := include "django.fullname" . -}}
 apiVersion: apps/v1
 kind: Deployment

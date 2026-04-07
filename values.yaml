@@ -29,7 +29,9 @@ ingress:
 
 # GeoNode Configs
 configs:
-  projectName: geonode
+  geonodeProject:
+    name: geonode
+    isGeoNodeProject: false
   domain: apps-crc.testing
   externalProxy:
     enabled: false
@@ -531,6 +533,8 @@ rabbitmq:
 redis:
   enabled: true
   architecture: standalone
+  auth:
+    password: "123456"
 
 memcached:
   enabled: true

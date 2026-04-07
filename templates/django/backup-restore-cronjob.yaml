@@ -1,4 +1,4 @@
-{{- $geonodeBaseDir := printf "/usr/src/%s" .Values.configs.projectName -}}
+{{- $geonodeBaseDir := include "geonode.appDir" . -}}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -36,7 +36,7 @@ spec:
                 - '-c'
               args:
                 - > 
-                  python manage.py backup --backup-dir={{ .Values.volumes.backupRestore.mountPath }}/{{ .Values.configs.projectName | default "geonode" }} 
+                  python manage.py backup --backup-dir={{ .Values.volumes.backupRestore.mountPath }}/{{ ternary "geonode" "project" .Values.configs.geonodeProject.isGeoNodeProject }} 
                   --config=/var/run/geonode/backup-restore/settings.ini --force
               env:
                 - name: IS_CELERY
