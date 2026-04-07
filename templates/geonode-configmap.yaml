@@ -34,11 +34,13 @@ data:
   # backend
   # #################
   # Postgres in geonode-postgres-secrets.yaml
-
-  {{- if .Values.rabbitmq.enabled }}
-  BROKER_URL: amqp://{{ .Values.rabbitmq.auth.username }}:{{ .Values.rabbitmq.auth.password }}@{{ .Release.Name }}-rabbitmq.{{ .Release.Namespace }}.svc.cluster.local:{{ default "5672" .Values.rabbitmq.service.ports.amqp }}
+  {{- if .Values.redis.enabled }}
+  {{- $redisURL := printf "redis://:%s@%s-master:%d" (.Values.redis.auth.password) (include "common.names.fullname" .Subcharts.redis) (.Values.redis.master.service.ports.redis | default 6379 | int) }}
+  BROKER_URL: {{ printf "%s/0" $redisURL }}
+  CELERY_RESULT_BACKEND: {{ printf "%s/1" $redisURL }}
   {{- else }}
   BROKER_URL: {{ .Values.configs.celery.brokerURL }}
+  CELERY_RESULT_BACKEND: {{ .Values.configs.celery.resultBackend }}
   {{- end }}
   CELERY_BEAT_SCHEDULER: celery.beat:PersistentScheduler
   ASYNC_SIGNALS: "True"
@@ -55,6 +57,8 @@ data:
   DEFAULT_MAX_UPLOAD_SIZE: {{ .maxUploadSize | int | quote }}
   DEFAULT_MAX_PARALLEL_UPLOADS_PER_USER: {{ .maxParallelUploadsPerUser | quote }}
   {{ end }}
+
+  PERMISSION_CACHE_EXPIRATION_TIME: "3600"
 
   # Django Haystack
   {{- with .Values.configs.haystack }}
@@ -132,6 +136,7 @@ data:
   {{ with .Values.configs.accessControl }}
   LOCKDOWN_GEONODE: {{ .lockdownGeoNode | toString | title | quote }}
   X_FRAME_OPTIONS: {{ .xFrameOptions }}
+  SESSION_ENGINE: django.contrib.sessions.backends.cached_db
   SESSION_EXPIRED_CONTROL_ENABLED: {{ .sessionExpiredControlEnabled | toString | title | quote }}
   DEFAULT_ANONYMOUS_VIEW_PERMISSION: {{ .defaultAnnonymousViewPermission | toString | title | quote }}
   DEFAULT_ANONYMOUS_DOWNLOAD_PERMISSION: {{ .defaultAnnonymousDownloadPermission | toString | title | quote }}
@@ -165,6 +170,7 @@ data:
 
   STATIC_ROOT: {{ printf "%s/static/" (.Values.volumes.statics.mountPath | trimSuffix "/") }}
   MEDIA_ROOT: {{ printf "%s/uploaded/" (.Values.volumes.statics.mountPath | trimSuffix "/") }} 
+  ASSETS_ROOT: {{ printf "%s/assets/" (.Values.volumes.statics.mountPath | trimSuffix "/") }}
   GEOIP_PATH: {{ printf "%s/geoip.db" (.Values.volumes.statics.mountPath | trimSuffix "/") }}
 
   CACHE_BUSTING_STATIC_ENABLED: {{ .Values.configs.cacheBustingStaticEnabled | toString | title | quote }}
@@ -182,13 +188,15 @@ data:
   # Monitoring
   {{ with .Values.configs.monitoring }}
   MONITORING_ENABLED: {{ .enabled | toString | title | quote }}
+  {{- if .enabled }}
   MONITORING_DATA_TTL: {{ .dataTTL | quote }}
   USER_ANALYTICS_ENABLED: {{ .userAnalytics.enabled | toString | title | quote }}
   USER_ANALYTICS_GZIP: {{ .userAnalytics.gzip | toString | title | quote }}
   CENTRALIZED_DASHBOARD_ENABLED: {{ .centralizedDashboard | toString | title | quote }}
   MONITORING_SERVICE_NAME: local-geonode
   MONITORING_HOST_NAME: geonode
-  {{ end }}
+  {{- end }}
+  {{- end }}
 
   # Other Options/Contribs
   {{ with .Values.configs.misc }}
@@ -227,3 +235,6 @@ data:
   # RESTART_POLICY_DELAY: 5s
   # RESTART_POLICY_MAX_ATTEMPTS: "3"
   # RESTART_POLICY_WINDOW: 120s
+
+  HARVESTING_MONITOR_ENABLED: {{ .Values.configs.harvestingMonitor.enabled | default true | toString | title | quote}}
+  HARVESTING_MONITOR_DELAY: {{ .Values.configs.harvestingMonitor.delay | default 60 | toString | quote }}

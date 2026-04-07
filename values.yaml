@@ -160,6 +160,10 @@ configs:
       url: http://elasticsearch:9200/
       indexName: haystack
     resultsPerPage: 200
+  harvestingMonitor: 
+    enabled: true
+    delay: 60
+
   geoserver:
     admin:
       user: ''
@@ -195,7 +199,7 @@ configs:
       -Dsun.java2d.renderer=org.marlin.pisces.MarlinRenderingEngine
   celery:
     brokerURL: ""
-    # resultBackend: ""
+    resultBackend: ""
   #   scheduler:
   postgres: 
     host: ''
@@ -294,7 +298,7 @@ services:
       repository: docker.io/geonode/nginx
       pullPolicy: IfNotPresent
       # Overrides the image tag whose default is the chart appVersion.
-      tag: "1.26.3-v1"
+      tag: "1.28.0-v1"
 
     config:
       resolver: ''
@@ -457,7 +461,7 @@ services:
       app:
         repository: docker.io/geonode/geoserver
         pullPolicy: &geoserverPullPolicy IfNotPresent
-        tag: &geoserverTag "2.27.4-latest"
+        tag: &geoserverTag "2.27.5-latest"
       data:
         repository: geonode/geoserver_data
         pullPolicy: *geoserverPullPolicy
@@ -523,6 +527,10 @@ rabbitmq:
     password: blah
     updatePassword: false
     erlangCookie: blah
+
+redis:
+  enabled: true
+  architecture: standalone
 
 memcached:
   enabled: true
