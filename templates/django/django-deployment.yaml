@@ -71,7 +71,7 @@ spec:
               command:
                 - sh
                 - '-c'
-                - wget --quiet --spider http://127.0.0.1:8000/version.txt || exit 1
+                - {{ printf "wget --quiet --spider http://127.0.0.1:%d/ || exit 1" (.Values.services.django.servicePort | int) }}
             failureThreshold: 3
             initialDelaySeconds: 180
             timeoutSeconds: 5
