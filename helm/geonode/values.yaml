@@ -165,7 +165,8 @@ configs:
   harvestingMonitor: 
     enabled: true
     delay: 60
-
+  catalogue:
+    defaultFormat: ISO
   geoserver:
     admin:
       user: ''

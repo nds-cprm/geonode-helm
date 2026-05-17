@@ -266,3 +266,6 @@ data:
   # Harvester monitor
   HARVESTING_MONITOR_ENABLED: {{ .Values.configs.harvestingMonitor.enabled | default true | toString | title | quote}}
   HARVESTING_MONITOR_DELAY: {{ .Values.configs.harvestingMonitor.delay | default 60 | toString | quote }}
+
+  # Catalogue
+  CATALOGUE_DEFAULT_FORMAT: {{ .Values.configs.catalogue.defaultFormat | quote }}
